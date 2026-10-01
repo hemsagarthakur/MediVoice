@@ -1,0 +1,29 @@
+.DS_Store
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+android/.gradle/
+android/local.properties
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Sensitive and generated mobile files
+app/android/key.properties
+*.jks
+*.keystore
+
