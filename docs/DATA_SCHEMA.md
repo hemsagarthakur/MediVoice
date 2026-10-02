@@ -32,7 +32,10 @@ The API does not echo `sourceText`; Flutter combines its local OCR text with the
 
 Contains a typed code, safe user message, retryable flag, and optional debug-only cause. Codes cover permission, image decode/quality, OCR, empty OCR, network, timeout, API response, invalid extraction, translation, speech, and unknown failures.
 
+## MedicineReference
+
+The separate post-confirmation reference response contains the requested medicine name, optional canonical name and RxCUI, short supported use and side-effect lists, one optional caution, source metadata, match quality, and availability. These general reference facts never modify `MedicineInstruction` or fill a missing prescription field. Flutter sends only the medicine name and its name-uncertainty flag to this endpoint.
+
 ## Contract ownership
 
 `docs/API_CONTRACT.md` owns the wire format. `backend/app/models.py` and Flutter model parsers implement it. Any change must update both sides and their fixture tests in one change.
-

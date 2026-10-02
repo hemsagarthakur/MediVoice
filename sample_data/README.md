@@ -1,8 +1,8 @@
 # Synthetic sample data
 
-The synthetic fixtures contain no patient identity or real patient records. They exercise clear, incomplete, ambiguous, multi-medicine, strip-only, OCR-failure, abbreviation, route, suspicious-dose, and malformed-model behavior. Add only synthetic or fully anonymized inputs unless the user explicitly provides and requests an exact device-captured regression fixture.
+The fixtures contain no patient identity or real patient records. They exercise clear, incomplete, ambiguous, multi-medicine, strip-only, OCR-failure, abbreviation, route, suspicious-dose, and malformed-model behavior. Add only synthetic or fully anonymized inputs.
 
-`fragmented_columns_device_ocr.txt` is the exact line-ordered OCR text explicitly supplied for this regression. It intentionally retains the provided spelling mistakes and fragmented column order. Do not use it outside this local test repository.
+`fragmented_columns_device_ocr.txt` preserves the line count, medicine instructions, spelling mistakes, and fragmented column order of the regression case. Patient, clinician, clinic, contact, and registration details were replaced with synthetic placeholders before publication.
 
 The text fixtures represent synthetic OCR output rather than medical advice. `malformed_model_response.json` is a deliberately invalid provider response used to verify fail-closed parsing.
 

@@ -19,9 +19,10 @@ Primary users are elderly people, low-literacy users, rural patients, people who
 7. Highlight uncertain fields and require their acknowledgement or correction while preserving the original extraction during the session. Expose affected editors through **Review unclear details** without forcing confident fields through another confirmation step.
 8. Show deterministic High, Medium, or Low scan confidence from validation, missing-data, uncertainty, warning, and suspicious-dose signals. Do not fabricate a percentage.
 9. Build a deterministic, short, plain-language English explanation from confirmed fields without adding medical facts.
-10. Localize the confirmed explanation to natural Hindi or Telugu prose on device while preserving medicine names, strengths, numbers, and instructions.
-11. Speak the localized explanation using an installed device voice.
-12. Fail safely with retry or rescan guidance.
+10. Look up optional, general medicine information from trusted public reference services after confirmation; keep it separate from the doctor's instructions and non-blocking.
+11. Localize the confirmed explanation to natural Hindi or Telugu prose on device while preserving medicine names, strengths, numbers, and instructions.
+12. Speak the localized explanation using an installed device voice.
+13. Fail safely with retry or rescan guidance.
 
 ## Nonfunctional requirements
 
@@ -34,7 +35,7 @@ Primary users are elderly people, low-literacy users, rural patients, people who
 
 ## MVP boundaries
 
-The MVP excludes diagnosis, prescribing, treatment planning, medicine-reference facts, interaction checking, medical-correctness validation, history, accounts, notifications, analytics, and full UI localization. Input OCR is Latin-script only.
+The MVP excludes diagnosis, prescribing, treatment planning, model-generated medicine-reference facts, interaction checking, medical-correctness validation, history, accounts, notifications, analytics, and full UI localization. Trusted reference facts are limited to concise label-supported uses, common side effects, and one general caution. Input OCR is Latin-script only.
 
 ## Success criteria
 

@@ -4,8 +4,6 @@
 app
 docs
 sample_data
-skills
 **/__pycache__
 **/.pytest_cache
 **/*.pyc
-

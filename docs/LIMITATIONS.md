@@ -17,6 +17,6 @@
 15. RxNorm, DailyMed, and openFDA availability and label wording vary. Ambiguous or unmatched names deliberately show no reference facts; some matched medicines may have partial or unavailable About content.
 16. The Android-only MVP has no iOS or web client.
 17. Scans are not saved; leaving the active flow loses the result.
-18. The unauthenticated Cloud Run demo endpoint is vulnerable to discovery and abuse; quotas limit cost but do not provide production access control.
+18. If the backend is deployed as an unauthenticated public demo, it is vulnerable to discovery and abuse; quotas limit cost but do not provide production access control.
 19. Low-resolution detection is heuristic and does not reliably detect blur.
 20. Demo mode recognizes only bundled synthetic fixture patterns; it is not a substitute for live extraction and rejects unsupported text.

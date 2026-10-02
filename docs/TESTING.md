@@ -33,7 +33,7 @@
 
 Use at least 15 synthetic or anonymized fixtures. Clear typed samples target 90% exact match on medicine name, strength, dose, frequency, and duration. Missing-dose and strip samples require zero invented dosage values. All malformed/empty/provider failures must fail safely.
 
-`sample_data/fragmented_columns_device_ocr.txt` preserves the explicitly supplied 44-line device OCR exactly. Prompt tests verify line numbering and mechanical candidate grouping; the mocked provider regression verifies five-medicine schema preservation. Live verification remains manual because Groq is excluded from the default suite.
+`sample_data/fragmented_columns_device_ocr.txt` preserves the 44-line layout, medicine instructions, OCR mistakes, and column fragmentation of the device regression while replacing identity and contact details with synthetic placeholders. Prompt tests verify line numbering and mechanical candidate grouping; the mocked provider regression verifies five-medicine schema preservation. Live verification remains manual because Groq is excluded from the default suite.
 
 ## Real-device checks
 

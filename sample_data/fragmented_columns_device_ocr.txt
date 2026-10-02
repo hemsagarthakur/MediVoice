@@ -1,9 +1,9 @@
 Date:
-Name: Anita Reddy
+Name: Test Patient
 Age/Sex: 32/ Female
 15/ I1 /2o24
 B
-Dr. R. Sharma
+Dr. Example Clinician
 MBBS, MD (General Medicine)
 Consultant Physician
 1. Paracetamol 500 mg
@@ -23,9 +23,9 @@ Diagnosis: Acute vial fever / URTI
 (after food)
 1 tablet once daily
 1 tablet
-Shree Clinic
-123, MG Road, Hyderabad- 500001
-Ph: 040-12345678
+Demo Clinic
+100, Sample Road, Test City- 000000
+Ph: 000-00000000
 (after food)
 at night
 1 tablet once daily
@@ -38,7 +38,7 @@ at night
 5 days
 5 days
 5 days
-RShasma
-Dr. R. Sharma
+ExampleSignature
+Dr. Example Clinician
 MBBS, MD (General Medicine)
-Reg. No. 12345
+Reg. No. TEST-0000

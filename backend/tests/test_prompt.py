@@ -21,7 +21,7 @@ def test_numbers_exact_fragmented_device_ocr_without_reordering_or_correction() 
     assert numbered_lines[16] == (
         "[L017] 5. Cough Syrap (Levosalbutamdl + Ambroxdl)"
     )
-    assert numbered_lines[-1] == "[L044] Reg. No. 12345"
+    assert numbered_lines[-1] == "[L044] Reg. No. TEST-0000"
     assert [line.split("] ", 1)[1] for line in numbered_lines] == source_lines
 
 
