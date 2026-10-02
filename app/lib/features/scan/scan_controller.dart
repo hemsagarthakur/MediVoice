@@ -6,11 +6,13 @@ import 'package:flutter/foundation.dart';
 
 import '../../core/errors/app_error.dart';
 import '../../core/models/medicine_instruction.dart';
+import '../../core/models/medicine_reference.dart';
 import '../../core/models/scan_mode.dart';
 import '../../core/models/scan_result.dart';
 import '../../core/models/translation_result.dart';
 import '../../core/services/extraction_api.dart';
 import '../../core/services/image_input_service.dart';
+import '../../core/services/medicine_reference_api.dart';
 import '../../core/services/ocr_service.dart';
 import '../../core/services/safety_validator.dart';
 import '../../core/services/speech_service.dart';
@@ -36,26 +38,32 @@ class ScanController extends ChangeNotifier {
     required ImageInputService imageInputService,
     required OcrService ocrService,
     required ExtractionApi extractionApi,
+    required MedicineReferenceApi medicineReferenceApi,
     required SafetyValidator safetyValidator,
     required SummaryBuilder summaryBuilder,
     required TranslationService translationService,
     required SpeechService speechService,
     this.demoMode = false,
+    bool enableOcrDebugViewer = kDebugMode,
   }) : _imageInputService = imageInputService,
        _ocrService = ocrService,
        _extractionApi = extractionApi,
+       _medicineReferenceApi = medicineReferenceApi,
        _safetyValidator = safetyValidator,
        _summaryBuilder = summaryBuilder,
        _translationService = translationService,
-       _speechService = speechService;
+       _speechService = speechService,
+       _enableOcrDebugViewer = kDebugMode && enableOcrDebugViewer;
 
   final ImageInputService _imageInputService;
   final OcrService _ocrService;
   final ExtractionApi _extractionApi;
+  final MedicineReferenceApi _medicineReferenceApi;
   final SafetyValidator _safetyValidator;
   final SummaryBuilder _summaryBuilder;
   final TranslationService _translationService;
   final SpeechService _speechService;
+  final bool _enableOcrDebugViewer;
   final bool demoMode;
 
   ScanWorkflowState _state = ScanWorkflowState.idle;
@@ -66,9 +74,11 @@ class ScanController extends ChangeNotifier {
   ScanResult? _editableResult;
   AppLanguage _selectedLanguage = AppLanguage.english;
   TranslationResult? _translation;
+  List<MedicineReference> _references = const [];
   AppError? _error;
   bool _acknowledgedUncertainty = false;
   bool _isSpeaking = false;
+  bool _isTranslating = false;
 
   ScanWorkflowState get state => _state;
   ScanMode? get mode => _mode;
@@ -78,12 +88,16 @@ class ScanController extends ChangeNotifier {
   ScanResult? get result => _editableResult;
   AppLanguage get selectedLanguage => _selectedLanguage;
   TranslationResult? get translation => _translation;
+  List<MedicineReference> get references => _references;
   AppError? get error => _error;
   bool get acknowledgedUncertainty => _acknowledgedUncertainty;
   bool get isSpeaking => _isSpeaking;
+  bool get isTranslating => _isTranslating;
+  bool get isOcrDebugViewerEnabled => _enableOcrDebugViewer;
 
   SafetyValidationResult get safety => _safetyValidator.validate(
     _editableResult?.medicines ?? const <MedicineInstruction>[],
+    scanWarnings: _editableResult?.warnings ?? const <String>[],
   );
 
   bool get canConfirm =>
@@ -91,7 +105,10 @@ class ScanController extends ChangeNotifier {
       (!safety.requiresAcknowledgement || _acknowledgedUncertainty);
 
   bool get canPlayAudio =>
-      _translation != null && !_translation!.usedFallback && !_isSpeaking;
+      _translation != null &&
+      !_translation!.usedFallback &&
+      !_isSpeaking &&
+      !_isTranslating;
 
   Future<bool> selectImage(ScanMode mode, ImageInputKind kind) async {
     final previousState = _state;
@@ -238,17 +255,53 @@ class ScanController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> changeLanguage(AppLanguage language) async {
+    final active = _editableResult;
+    final current = _translation;
+    if (active == null ||
+        current == null ||
+        _state != ScanWorkflowState.ready ||
+        _isTranslating) {
+      return;
+    }
+    await _speechService.stop();
+    _isSpeaking = false;
+    _selectedLanguage = language;
+    _isTranslating = true;
+    _error = null;
+    if (kDebugMode) {
+      debugPrint('MediVoice language_selected=${language.bcpCode}');
+    }
+    notifyListeners();
+    await _prepareTranslation(
+      current.verifiedEnglishText,
+      finishInitial: false,
+    );
+  }
+
   Future<void> confirmAndPrepareResult() async {
     final active = _editableResult;
     if (active == null || !canConfirm) return;
     _state = ScanWorkflowState.preparingResult;
     _error = null;
     notifyListeners();
-    final english = _summaryBuilder.build(active.medicines);
+    _references = await _medicineReferenceApi.lookup(active.medicines);
+    final english = _summaryBuilder.build(
+      active.medicines,
+      references: _references,
+    );
+    await _prepareTranslation(english, finishInitial: true);
+  }
+
+  Future<void> _prepareTranslation(
+    String english, {
+    required bool finishInitial,
+  }) async {
     try {
       _translation = await _translationService.translate(
         english,
         _selectedLanguage,
+        protectedTerms: _protectedTranslationTerms,
       );
     } on AppError catch (error) {
       _error = error;
@@ -272,22 +325,23 @@ class ScanController extends ChangeNotifier {
         usedFallback: true,
       );
     }
-    _state = ScanWorkflowState.ready;
+    _isTranslating = false;
+    if (finishInitial) _state = ScanWorkflowState.ready;
     notifyListeners();
   }
 
   Future<void> retryTranslation() async {
     final current = _translation;
-    if (current == null) return;
-    _state = ScanWorkflowState.preparingResult;
+    if (current == null || _isTranslating) return;
+    _isTranslating = true;
     _error = null;
     notifyListeners();
     try {
       _translation = await _translationService.translate(
         current.verifiedEnglishText,
         _selectedLanguage,
+        protectedTerms: _protectedTranslationTerms,
       );
-      _state = ScanWorkflowState.ready;
     } on AppError catch (error) {
       _error = error;
       _translation = TranslationResult(
@@ -296,10 +350,22 @@ class ScanController extends ChangeNotifier {
         translatedText: current.verifiedEnglishText,
         usedFallback: true,
       );
-      _state = ScanWorkflowState.ready;
     }
+    _isTranslating = false;
     notifyListeners();
   }
+
+  List<String> get _protectedTranslationTerms => [
+    for (final medicine
+        in _editableResult?.medicines ?? const <MedicineInstruction>[]) ...[
+      if (medicine.medicineName != null) medicine.medicineName!,
+      if (medicine.strength != null) medicine.strength!,
+      if (medicine.dose != null) medicine.dose!,
+      if (medicine.duration != null) medicine.duration!,
+    ],
+    for (final reference in _references)
+      if (reference.canonicalName != null) reference.canonicalName!,
+  ];
 
   Future<void> play() async {
     final current = _translation;
@@ -327,6 +393,7 @@ class ScanController extends ChangeNotifier {
   Future<void> stop() async {
     await _speechService.stop();
     _isSpeaking = false;
+    _isTranslating = false;
     notifyListeners();
   }
 
@@ -355,6 +422,7 @@ class ScanController extends ChangeNotifier {
     _editableResult = null;
     _selectedLanguage = AppLanguage.english;
     _translation = null;
+    _references = const [];
     _error = null;
     _acknowledgedUncertainty = false;
     _isSpeaking = false;
@@ -366,6 +434,7 @@ class ScanController extends ChangeNotifier {
     unawaited(_speechService.stop());
     _ocrService.close();
     _extractionApi.close();
+    _medicineReferenceApi.close();
     super.dispose();
   }
 }

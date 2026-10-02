@@ -29,4 +29,3 @@ def test_prescription_safety_preserves_extracted_fields() -> None:
         medicines=[MedicineInstruction(medicine_name="Paracetamol", dose="1 tablet")]
     )
     assert apply_deterministic_safety(payload, ScanMode.PRESCRIPTION) == payload
-

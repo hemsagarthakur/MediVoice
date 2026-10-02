@@ -7,12 +7,14 @@ class MedicineFieldsCard extends StatelessWidget {
     required this.index,
     required this.medicine,
     required this.onChanged,
+    this.fields = const {},
     super.key,
   });
 
   final int index;
   final MedicineInstruction medicine;
   final void Function(MedicineField field, String value) onChanged;
+  final Set<MedicineField> fields;
 
   @override
   Widget build(BuildContext context) {
@@ -28,9 +30,15 @@ class MedicineFieldsCard extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 6),
-            const Text('Check each field against the original image.'),
+            Text(
+              fields.length == MedicineField.values.length
+                  ? 'Check each field against the original image.'
+                  : 'Only unclear details are shown here.',
+            ),
             const SizedBox(height: 18),
-            for (final field in MedicineField.values) ...[
+            for (final field in MedicineField.values.where(
+              fields.contains,
+            )) ...[
               _MedicineTextField(
                 key: ValueKey('${index}_${field.name}'),
                 field: field,

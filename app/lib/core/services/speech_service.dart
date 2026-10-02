@@ -1,4 +1,5 @@
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:flutter/foundation.dart';
 
 import '../errors/app_error.dart';
 import '../models/translation_result.dart';
@@ -29,6 +30,9 @@ class DeviceSpeechService implements SpeechService {
         throw StateError('Requested TTS locale is not installed.');
       }
       await _tts.stop();
+      if (kDebugMode) {
+        debugPrint('MediVoice tts_locale=${language.ttsLocale}');
+      }
       await _tts.setLanguage(language.ttsLocale);
       await _tts.setSpeechRate(0.42);
       await _tts.awaitSpeakCompletion(true);

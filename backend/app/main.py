@@ -9,14 +9,20 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from backend.app.config import get_settings
-from backend.app.errors import GeminiServiceError
-from backend.app.gemini_service import GeminiExtractionService
+from backend.app.errors import ProviderServiceError
+from backend.app.groq_service import GroqExtractionService
 from backend.app.mock_extraction_service import MockExtractionService
+from backend.app.medicine_reference_service import (
+    MedicineReferenceService,
+    UrlLibReferenceHttpClient,
+)
 from backend.app.models import (
     ApiErrorDetail,
     ApiErrorResponse,
     ExtractionRequest,
     ExtractionResponse,
+    MedicineReferenceRequest,
+    MedicineReferenceResponse,
 )
 from backend.app.safety import apply_deterministic_safety
 
@@ -31,10 +37,19 @@ app = FastAPI(
     docs_url="/docs" if settings.app_env != "production" else None,
     redoc_url=None,
 )
+reference_service = MedicineReferenceService(
+    UrlLibReferenceHttpClient(settings.reference_request_timeout_seconds)
+)
 
 
 def error_response(
-    *, request_id: str, code: str, message: str, retryable: bool, status_code: int
+    *,
+    request_id: str,
+    code: str,
+    message: str,
+    retryable: bool,
+    status_code: int,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     body = ApiErrorResponse(
         error=ApiErrorDetail(
@@ -44,7 +59,11 @@ def error_response(
             request_id=request_id,
         )
     )
-    return JSONResponse(status_code=status_code, content=body.model_dump(mode="json"))
+    return JSONResponse(
+        status_code=status_code,
+        content=body.model_dump(mode="json"),
+        headers=headers,
+    )
 
 
 @app.middleware("http")
@@ -95,6 +114,31 @@ async def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.post("/api/v1/medicine-references", response_model=MedicineReferenceResponse)
+async def create_medicine_references(
+    payload: MedicineReferenceRequest,
+    request: Request,
+) -> MedicineReferenceResponse:
+    request_id = request.state.request_id
+    references = await asyncio.gather(
+        *(
+            asyncio.to_thread(
+                reference_service.lookup,
+                item.medicine_name,
+                name_uncertain=item.name_uncertain,
+            )
+            for item in payload.medicines
+        )
+    )
+    logger.info(
+        "reference_lookup request_id=%s medicines=%d available=%d",
+        request_id,
+        len(references),
+        sum(reference.available for reference in references),
+    )
+    return MedicineReferenceResponse(request_id=request_id, references=references)
+
+
 @app.post(
     "/api/v1/extractions",
     response_model=ExtractionResponse,
@@ -106,7 +150,11 @@ async def create_extraction(
 ) -> ExtractionResponse | JSONResponse:
     request_id = request.state.request_id
     started = time.monotonic()
-    service = MockExtractionService() if settings.demo_mode else GeminiExtractionService(settings)
+    service = (
+        MockExtractionService()
+        if settings.demo_mode
+        else GroqExtractionService(settings)
+    )
     try:
         extracted = await asyncio.wait_for(
             asyncio.to_thread(service.extract, payload.scan_mode, payload.ocr_text),
@@ -136,7 +184,7 @@ async def create_extraction(
             retryable=True,
             status_code=503,
         )
-    except GeminiServiceError as error:
+    except ProviderServiceError as error:
         logger.warning(
             "extraction_failure request_id=%s code=%s", request_id, error.code
         )
@@ -146,6 +194,9 @@ async def create_extraction(
             message=error.message,
             retryable=error.retryable,
             status_code=error.status_code,
+            headers={"Retry-After": error.retry_after}
+            if error.retry_after is not None
+            else None,
         )
     except Exception:
         logger.error("extraction_failure request_id=%s code=internal_error", request_id)

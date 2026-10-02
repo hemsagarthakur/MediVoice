@@ -30,9 +30,9 @@ void main() {
 
     await tester.tap(find.text('Use this image'));
     await tester.pumpAndSettle();
-    expect(find.text('Check before continuing'), findsOneWidget);
+    expect(find.text('We found 1 medicine'), findsOneWidget);
 
-    final confirm = find.text('Confirm and continue');
+    final confirm = find.text('Looks correct');
     await tester.scrollUntilVisible(
       confirm,
       500,
@@ -41,9 +41,9 @@ void main() {
     await tester.tap(confirm);
     await tester.pumpAndSettle();
 
-    expect(find.text('Verified result'), findsOneWidget);
+    expect(find.text('Your medicines'), findsWidgets);
     expect(find.textContaining('Paracetamol'), findsWidgets);
-    final playAudio = find.text('Play audio');
+    final playAudio = find.text('Listen');
     await tester.scrollUntilVisible(
       playAudio,
       500,

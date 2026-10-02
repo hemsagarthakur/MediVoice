@@ -145,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                'Demo mode uses bundled synthetic OCR text and deterministic backend data. It does not call Gemini.',
+                'Demo mode uses bundled synthetic OCR text and deterministic backend data. It does not call Groq.',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
@@ -178,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Text(
               context.watch<ScanController>().demoMode
                   ? 'Privacy: the photo stays on this device. In demo mode, extracted text is sent only to the local mock backend and is not saved.'
-                  : 'Privacy: the photo stays on this device. Extracted text is sent to Google Gemini for structured processing and is not saved by MediVoice.',
+                  : 'Privacy: the photo stays on this device. Extracted text is sent to Groq for structured processing and is not saved by MediVoice.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],

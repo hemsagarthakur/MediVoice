@@ -26,6 +26,6 @@ void main() {
     await tester.pumpWidget(MediVoiceApp(controller: controller));
 
     expect(find.text('Try synthetic demo'), findsOneWidget);
-    expect(find.textContaining('does not call Gemini'), findsOneWidget);
+    expect(find.textContaining('does not call Groq'), findsOneWidget);
   });
 }

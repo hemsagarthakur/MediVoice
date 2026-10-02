@@ -12,15 +12,16 @@ void main() {
     expect(result.hasBlockingIssues, isTrue);
   });
 
-  test('missing critical fields require acknowledgement', () {
+  test('missing critical fields produce low confidence and require review', () {
     final result = validator.validate(const [
       MedicineInstruction(medicineName: 'Paracetamol'),
     ]);
     expect(result.hasBlockingIssues, isFalse);
     expect(result.requiresAcknowledgement, isTrue);
+    expect(result.confidence, ScanConfidenceLevel.low);
   });
 
-  test('complete certain fields need no extra acknowledgement', () {
+  test('complete certain fields produce high confidence', () {
     final result = validator.validate(const [
       MedicineInstruction(
         medicineName: 'Paracetamol',
@@ -28,10 +29,29 @@ void main() {
         dose: '1 tablet',
         frequency: 'Twice daily',
         timing: 'Morning and evening',
+        duration: '5 days',
+        foodInstruction: 'After food',
       ),
     ]);
     expect(result.hasBlockingIssues, isFalse);
     expect(result.requiresAcknowledgement, isFalse);
+    expect(result.confidence, ScanConfidenceLevel.high);
+  });
+
+  test('missing optional information produces medium confidence', () {
+    final result = validator.validate(const [
+      MedicineInstruction(
+        medicineName: 'Paracetamol',
+        strength: '500 mg',
+        dose: '1 tablet',
+        frequency: 'Twice daily',
+        timing: 'Morning and evening',
+        foodInstruction: 'After food',
+      ),
+    ]);
+
+    expect(result.requiresAcknowledgement, isFalse);
+    expect(result.confidence, ScanConfidenceLevel.medium);
   });
 
   test('an uncertain dose requires acknowledgement', () {
@@ -46,6 +66,7 @@ void main() {
       ),
     ]);
     expect(result.requiresAcknowledgement, isTrue);
+    expect(result.confidence, ScanConfidenceLevel.low);
   });
 
   test('a suspicious per-dose unit count requires acknowledgement', () {
@@ -60,6 +81,7 @@ void main() {
     ]);
 
     expect(result.requiresAcknowledgement, isTrue);
+    expect(result.confidence, ScanConfidenceLevel.low);
     expect(result.attentionMessages, hasLength(1));
     expect(result.attentionMessages.single, contains('per-dose unit count'));
   });

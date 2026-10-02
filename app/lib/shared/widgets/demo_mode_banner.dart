@@ -7,7 +7,7 @@ class DemoModeBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       container: true,
-      label: 'Demo mode. Synthetic data only. Gemini is not being used.',
+      label: 'Demo mode. Synthetic data only. Groq is not being used.',
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -21,7 +21,7 @@ class DemoModeBanner extends StatelessWidget {
             SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Demo mode: this result comes from synthetic data and deterministic mock extraction, not Gemini.',
+                'Demo mode: this result comes from synthetic data and deterministic mock extraction, not Groq.',
               ),
             ),
           ],

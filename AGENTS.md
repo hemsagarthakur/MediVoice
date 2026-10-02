@@ -11,7 +11,7 @@ Before changing code, read this file and the relevant documents in `docs/`. Read
 ## Architecture rules
 
 - Flutter is the only client. Keep UI in widgets, workflow state in `ScanController`, and external capabilities behind services.
-- Never call Gemini from widgets or from the Flutter client. The FastAPI backend is the only Gemini caller.
+- Never call Groq from widgets or from the Flutter client. The FastAPI backend is the only live LLM caller.
 - Keep demo extraction explicitly enabled, deterministic, and limited to synthetic fixtures. Never silently fall back from failed live extraction to demo data.
 - OCR, extraction API, validation, summary, translation, and speech logic belong in their named services.
 - Maintain one canonical model per concept inside each language. Keep Dart and Pydantic wire contracts aligned.

@@ -11,12 +11,13 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    gemini_api_key: str = Field(default="", repr=False)
-    gemini_model: str = "gemini-3.8-flash"
+    groq_api_key: str = Field(default="", repr=False)
+    groq_model: str = "openai/gpt-oss-20b"
     demo_mode: bool = False
     app_env: str = "development"
     log_level: str = "INFO"
     api_request_timeout_seconds: float = Field(default=15.0, gt=0, le=60)
+    reference_request_timeout_seconds: float = Field(default=8.0, gt=0, le=30)
 
 
 @lru_cache

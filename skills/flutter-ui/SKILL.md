@@ -11,7 +11,6 @@ Read `AGENTS.md`, `docs/PROJECT_SPEC.md`, and `docs/SAFETY.md`. Keep widgets pre
 - Preserve the linear Home → capture/review → processing → confirmation → result flow.
 - Reuse shared buttons, error panels, disclaimers, and medicine cards.
 - Show loading, empty, retry, and rescan states explicitly. Never hide safety warnings to reduce clutter.
-- Do not add business logic, Gemini calls, persistence, a routing framework, or a second state-management system.
+- Do not add business logic, live-provider calls, persistence, a routing framework, or a second state-management system.
 
 Run formatting, analyzer, widget tests, and a text-scaling/TalkBack check for material UI changes.
-

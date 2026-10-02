@@ -3,6 +3,8 @@ from fastapi.testclient import TestClient
 
 import backend.app.main as main_module
 from backend.app.config import Settings
+from backend.app.errors import NoMedicineDetectedError, ProviderServiceError
+from backend.app.models import MedicineReference
 
 
 app = main_module.app
@@ -16,7 +18,7 @@ def force_live_mode_without_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         main_module,
         "settings",
-        Settings(gemini_api_key="", demo_mode=False, _env_file=None),
+        Settings(groq_api_key="", demo_mode=False, _env_file=None),
     )
 
 
@@ -24,6 +26,35 @@ def test_healthz() -> None:
     response = client.get("/healthz")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_reference_endpoint_sends_only_medicine_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, bool]] = []
+
+    class FakeReferenceService:
+        def lookup(self, name: str, *, name_uncertain: bool) -> MedicineReference:
+            calls.append((name, name_uncertain))
+            return MedicineReference(
+                requested_name=name,
+                match_quality="ambiguous" if name_uncertain else "none",
+                available=False,
+            )
+
+    monkeypatch.setattr(main_module, "reference_service", FakeReferenceService())
+    response = client.post(
+        "/api/v1/medicine-references",
+        json={
+            "schema_version": "1.0",
+            "medicines": [
+                {"medicine_name": "Unclear name", "name_uncertain": True}
+            ],
+        },
+    )
+    assert response.status_code == 200
+    assert calls == [("Unclear name", True)]
+    assert response.json()["references"][0]["available"] is False
 
 
 def test_invalid_short_ocr_has_safe_error() -> None:
@@ -78,13 +109,76 @@ def test_missing_api_key_fails_without_echoing_ocr() -> None:
     assert "Paracetamol" not in str(body)
 
 
+def test_rate_limit_returns_retry_after_without_internal_retries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class RateLimitedService:
+        def __init__(self, _: Settings) -> None:
+            pass
+
+        def extract(self, *_: object) -> None:
+            raise ProviderServiceError(
+                "rate_limited",
+                "The extraction service is temporarily rate limited. Please wait and retry.",
+                retryable=True,
+                status_code=429,
+                retry_after="9",
+            )
+
+    monkeypatch.setattr(main_module, "GroqExtractionService", RateLimitedService)
+    response = client.post(
+        "/api/v1/extractions",
+        json={
+            "schema_version": "1.0",
+            "scan_mode": "prescription",
+            "ocr_text": "Paracetamol 500 mg twice daily",
+        },
+    )
+
+    assert response.status_code == 429
+    assert response.headers["retry-after"] == "9"
+    assert response.json()["error"]["code"] == "rate_limited"
+
+
+def test_no_medicine_detected_uses_safe_error_envelope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class EmptyExtractionService:
+        def __init__(self, _: Settings) -> None:
+            pass
+
+        def extract(self, *_: object) -> None:
+            raise NoMedicineDetectedError()
+
+    monkeypatch.setattr(main_module, "GroqExtractionService", EmptyExtractionService)
+    response = client.post(
+        "/api/v1/extractions",
+        json={
+            "schema_version": "1.0",
+            "scan_mode": "prescription",
+            "ocr_text": "Unreadable prescription image text",
+        },
+    )
+
+    assert response.status_code == 502
+    body = response.json()["error"]
+    assert body["code"] == "no_medicine_detected"
+    assert body["retryable"] is True
+
+
 def test_demo_mode_extracts_synthetic_text_without_api_key(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
         main_module,
         "settings",
-        Settings(gemini_api_key="", demo_mode=True, _env_file=None),
+        Settings(groq_api_key="", demo_mode=True, _env_file=None),
+    )
+    def fail_if_groq_is_initialized(*_: object) -> None:
+        raise AssertionError("Groq must never be initialized in demo mode")
+
+    monkeypatch.setattr(
+        main_module, "GroqExtractionService", fail_if_groq_is_initialized
     )
 
     response = client.post(
@@ -112,7 +206,7 @@ def test_demo_mode_still_applies_strip_safety(
     monkeypatch.setattr(
         main_module,
         "settings",
-        Settings(gemini_api_key="", demo_mode=True, _env_file=None),
+        Settings(groq_api_key="", demo_mode=True, _env_file=None),
     )
 
     response = client.post(
@@ -141,7 +235,7 @@ def test_demo_mode_rejects_unknown_text_without_inventing_fields(
     monkeypatch.setattr(
         main_module,
         "settings",
-        Settings(gemini_api_key="", demo_mode=True, _env_file=None),
+        Settings(groq_api_key="", demo_mode=True, _env_file=None),
     )
 
     response = client.post(

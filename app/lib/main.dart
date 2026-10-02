@@ -4,6 +4,7 @@ import 'app/app.dart';
 import 'core/config/app_config.dart';
 import 'core/services/extraction_api.dart';
 import 'core/services/image_input_service.dart';
+import 'core/services/medicine_reference_api.dart';
 import 'core/services/ocr_service.dart';
 import 'core/services/safety_validator.dart';
 import 'core/services/speech_service.dart';
@@ -18,6 +19,7 @@ void main() {
     imageInputService: DeviceImageInputService(),
     ocrService: MlKitOcrService(),
     extractionApi: HttpExtractionApi(baseUrl: config.apiBaseUrl),
+    medicineReferenceApi: HttpMedicineReferenceApi(baseUrl: config.apiBaseUrl),
     safetyValidator: const SafetyValidator(),
     summaryBuilder: const SummaryBuilder(),
     translationService: MlKitTranslationService(),

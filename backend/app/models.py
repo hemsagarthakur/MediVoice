@@ -25,6 +25,7 @@ class MedicineField(StrEnum):
 
 
 NullableText = Annotated[str | None, Field(default=None, max_length=200)]
+WarningText = Annotated[str, Field(min_length=1, max_length=240)]
 
 
 class MedicineInstruction(BaseModel):
@@ -40,7 +41,7 @@ class MedicineInstruction(BaseModel):
     route: NullableText = None
     additional_instruction: NullableText = None
     uncertain_fields: list[MedicineField] = Field(default_factory=list, max_length=9)
-    warnings: list[Annotated[str, Field(min_length=1, max_length=240)]] = Field(
+    warnings: list[WarningText] = Field(
         default_factory=list,
         max_length=10,
     )
@@ -87,10 +88,23 @@ class ExtractionPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     medicines: list[MedicineInstruction] = Field(min_length=1, max_length=10)
-    warnings: list[Annotated[str, Field(min_length=1, max_length=240)]] = Field(
+    warnings: list[WarningText] = Field(
         default_factory=list,
         max_length=10,
     )
+
+
+class ProviderExtractionPayload(BaseModel):
+    """Provider-only envelope that can safely express no detected medicine.
+
+    Successful API responses still use ``ExtractionPayload`` and therefore retain
+    the public one-to-ten medicine contract.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    medicines: list[MedicineInstruction] = Field(min_length=0, max_length=10)
+    warnings: list[WarningText] = Field(default_factory=list, max_length=10)
 
 
 class ExtractionRequest(BaseModel):
@@ -122,3 +136,40 @@ class ApiErrorDetail(BaseModel):
 
 class ApiErrorResponse(BaseModel):
     error: ApiErrorDetail
+
+
+class MedicineReferenceRequestItem(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    medicine_name: str = Field(min_length=1, max_length=200)
+    name_uncertain: bool = False
+
+
+class MedicineReferenceRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = SCHEMA_VERSION
+    medicines: list[MedicineReferenceRequestItem] = Field(min_length=1, max_length=10)
+
+
+class MedicineReference(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    requested_name: str = Field(min_length=1, max_length=200)
+    canonical_name: str | None = Field(default=None, max_length=200)
+    rx_cui: str | None = Field(default=None, max_length=32)
+    commonly_used_for: list[str] = Field(default_factory=list, max_length=3)
+    common_side_effects: list[str] = Field(default_factory=list, max_length=4)
+    important_caution: str | None = Field(default=None, max_length=300)
+    source: Literal["dailymed", "openfda"] | None = None
+    source_reference: str | None = Field(default=None, max_length=500)
+    match_quality: Literal["exact", "normalized", "ambiguous", "none"]
+    available: bool
+
+
+class MedicineReferenceResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    schema_version: Literal["1.0"] = SCHEMA_VERSION
+    request_id: str
+    references: list[MedicineReference] = Field(min_length=1, max_length=10)
